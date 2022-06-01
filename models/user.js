@@ -1,22 +1,40 @@
 const db = require('../config/config');
 const bcrypt = require('bcryptjs');
+const Role = require('./roles');
 
 const User = {};
 
 
 User.findById=(id,result)=>{
   const sql = `
-    SELECT
-      id,
-      email,
-      lastname,
-      phone,
-      image,
-      password
-    FROM
-      users
-    WHERE
-      id=?
+  SELECT
+	U.id,
+	U.email,
+	U.name,
+	U.lastname,
+	U.image,
+	U.phone,
+	U.password,
+	JSON_ARRAYAGG(
+		JSON_OBJECT(
+			'id',R.id,
+			'name',R.name,
+			'image',R.image,
+			'route',R.route
+		)
+		) as roles
+  FROM 
+    users AS U
+  INNER JOIN
+    user_has_roles AS UHR
+  ON
+    UHR.id_user = U.id
+  INNER JOIN
+    roles AS R
+  ON
+    UHR.id_role=R.id
+  WHERE 
+   id=?
   `;
 
   db.query(
@@ -36,17 +54,34 @@ User.findById=(id,result)=>{
 
 User.findByEmail=(email,result)=>{
   const sql = `
-    SELECT
-      id,
-      email,
-      lastname,
-      image,
-      phone,
-      password
-    FROM
-      users
-    WHERE
-      email=?
+  SELECT
+	U.id,
+	U.email,
+	U.name,
+	U.lastname,
+	U.image,
+	U.phone,
+	U.password,
+	JSON_ARRAYAGG(
+		JSON_OBJECT(
+			'id',CONVERT(R.id,char),
+			'name',R.name,
+			'image',R.image,
+			'route',R.route
+		)
+		) as roles
+  FROM 
+    users AS U
+  INNER JOIN
+    user_has_roles AS UHR
+  ON
+    UHR.id_user = U.id
+  INNER JOIN
+    roles AS R
+  ON
+    UHR.id_role=R.id
+  WHERE 
+    email =?
   `;
 
   db.query(
@@ -98,9 +133,12 @@ User.create =async (user, result) => {
         console.log(`Error ${err}`);
         result(err, null);
       } else {
-        console.log(`new uer has been created`, res.insertId);
-        result(null, null);
+        // console.log(`new user has been created`, res.insertId);
+        result(null, res.insertId);
       }
+
+
+  
     }
   );
 };

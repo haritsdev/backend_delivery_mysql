@@ -1,5 +1,5 @@
-const res = require('express/lib/response');
 const User = require('../models/user');
+const Role = require('../models/roles');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken')
 const keys = require('../config/keys');
@@ -18,7 +18,7 @@ module.exports = {
         if (err) {
           return res.status(501).json({
             success: false,
-            message: 'Error at user registration',
+            message: err,
             error: err,
           });
         }
@@ -38,13 +38,15 @@ module.exports = {
             const token = jwt.sign({id:user.id,email:user.email},keys.secretOrKey,{});
   
             const data = {
-              id: user.id,
+              id: `${user.id}`,
               name: user.name,
               lastname: user.email,
               phone: user.phone,
               image:user.image,
-              session_token:`JWT ${token}`
+              session_token:`JWT ${token}`,
+              roles:JSON.parse(user.roles)
             }
+
   
             return res.status(201).json({
               success: true,
@@ -70,7 +72,7 @@ module.exports = {
       if (err) {
         return res.status(501).json({
           success: false,
-          message: 'Error at user registration',
+          message: err,
           error: err,
         });
       }
@@ -101,20 +103,35 @@ module.exports = {
       if (err) {
         return res.status(501).json({
           success: false,
-          message: 'Error at user registration',
+          message:`${err.message}`,
           error: err,
         });
       }
 
-      user.id=data;
-      const token = jwt.sign({id:user.id,email:user.email},keys.secretOrKey,{});
-      const session_token = `JWT ${token}`;
-  
-      return res.status(201).json({
-        success: true,
-        message: 'Register new user success',
-        data: user, //data from new user
+        user.id = `${data}`;
+      
+        console.log(`USER ID ${user.id}`)
+
+        const token = jwt.sign({id:user.id,email:user.email},keys.secretOrKey,{});
+        const session_token = `JWT ${token}`;  
+
+       Role.create(user.id,3,(err,data)=>{
+        
+          if(err){
+            return res.status(501).json({
+              success:false,
+              message:'Berhasil meregistrasi user',
+            })
+          }
+        
+          return res.status(201).json({
+            success: true,
+            message: 'Register new user success',
+            data: user, //data from new user
+          });
       });
+
+
     });
   },
 };
